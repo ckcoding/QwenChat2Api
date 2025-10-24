@@ -1,0 +1,35 @@
+{
+  "name": "qwen-api-nodejs",
+  "version": "3.10.0",
+  "description": "通义千问 API 转 OpenAI 标准格式 - Node.js 版本",
+  "main": "main.js",
+  "scripts": {
+    "start": "node main.js",
+    "dev": "DEBUG=true node main.js",
+    "test": "node test.js"
+  },
+  "keywords": [
+    "qwen",
+    "openai",
+    "api",
+    "proxy",
+    "nodejs",
+    "express"
+  ],
+  "author": "Qwen API Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "axios": "^1.6.2",
+    "ali-oss": "^6.18.1",
+    "mime-types": "^2.1.35",
+    "crypto": "^1.0.1",
+    "uuid": "^9.0.1",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

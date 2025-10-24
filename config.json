@@ -1,0 +1,10 @@
+{
+  "API_KEY": "sk-aaaa-bbbb-cccc-dddd",
+  "QWEN_TOKEN": "",
+  "SERVER_MODE": true,
+  "DEBUG_MODE": false,
+  "SERVER_PORT": 8000,
+  "VISION_FALLBACK_MODEL": "qwen-vl-max",
+  "AUTO_REFRESH_TOKEN": true,
+  "TOKEN_REFRESH_INTERVAL_HOURS": 24
+}
