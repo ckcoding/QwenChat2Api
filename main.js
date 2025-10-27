@@ -512,18 +512,43 @@ app.post('/v1/chat/completions', async (req, res) => {
       // 流式：SSE 转发
       setSseHeaders(res, requestId);
       const { safeWriteDone, cleanup } = createKeepAlive(res);
-      const upstream = await http.post(apiUrl, qwenRequest, { headers, responseType: 'stream' });
-      logger.info('上游响应就绪', { requestId, status: upstream.status, upstreamHeaderKeys: Object.keys(upstream.headers || {}) });
-    const transformer = createQwenToOpenAIStreamTransformer();
-    upstream.data.on('error', (e)=>{ logger.error('上游流错误', e); });
-    transformer.on('error', (e)=>{ logger.error('转换器错误', e); });
-    upstream.data.on('end', () => { logger.info('上游数据流 end', { requestId }); safeWriteDone(); });
-    upstream.data.on('close', () => { logger.info('上游数据流 close', { requestId }); safeWriteDone(); });
-    transformer.on('end', () => { logger.info('转换器 end', { requestId }); safeWriteDone(); });
-    req.on('close', () => { try { upstream.data.destroy(); } catch (_) {} safeWriteDone(); });
-    upstream.data.pipe(transformer).pipe(res, { end: false });
-      res.on('close', () => { cleanup(); logger.info('响应 close', { requestId }); });
-      res.on('finish', () => { cleanup(); logger.info('响应 finish', { requestId }); });
+      
+      try {
+        const upstream = await http.post(apiUrl, qwenRequest, { headers, responseType: 'stream' });
+        logger.info('上游响应就绪', { requestId, status: upstream.status, upstreamHeaderKeys: Object.keys(upstream.headers || {}) });
+        const transformer = createQwenToOpenAIStreamTransformer();
+        upstream.data.on('error', (e)=>{ logger.error('上游流错误', e); });
+        transformer.on('error', (e)=>{ logger.error('转换器错误', e); });
+        upstream.data.on('end', () => { logger.info('上游数据流 end', { requestId }); safeWriteDone(); });
+        upstream.data.on('close', () => { logger.info('上游数据流 close', { requestId }); safeWriteDone(); });
+        transformer.on('end', () => { logger.info('转换器 end', { requestId }); safeWriteDone(); });
+        req.on('close', () => { try { upstream.data.destroy(); } catch (_) {} safeWriteDone(); });
+        upstream.data.pipe(transformer).pipe(res, { end: false });
+        res.on('close', () => { cleanup(); logger.info('响应 close', { requestId }); });
+        res.on('finish', () => { cleanup(); logger.info('响应 finish', { requestId }); });
+      } catch (upstreamError) {
+        // 如果上游请求失败，但响应头已发送，需要向客户端发送错误消息
+        logger.error('上游请求失败，但响应头已发送，向客户端发送错误', { requestId, error: upstreamError.message });
+        try {
+          const errorMessage = `上游API请求失败: ${upstreamError.message}`;
+          const errorChunk = {
+            id: `chatcmpl-${randomUUID()}`,
+            object: 'chat.completion.chunk',
+            created: Math.floor(Date.now()/1000),
+            model: 'qwen-proxy',
+            choices: [{ index: 0, delta: { content: errorMessage }, finish_reason: 'stop' }]
+          };
+          res.write(`data: ${JSON.stringify(errorChunk)}\n\n`);
+          res.write('data: [DONE]\n\n');
+          cleanup();
+          res.end();
+        } catch (e) {
+          logger.error('发送错误消息失败', e);
+          cleanup();
+          res.end();
+        }
+        // 不需要再次抛出错误，因为已经处理了
+      }
     } else {
       // 非流式：部分上游仍以 SSE 形式返回增量，因此这里优先尝试以流收集
       const upstream = await http.post(apiUrl, { ...qwenRequest, stream: true, incremental_output: true }, { headers, responseType: 'stream' });
