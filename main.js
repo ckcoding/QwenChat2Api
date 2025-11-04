@@ -90,23 +90,6 @@ async function initializeToken() {
   }
 }
 
-// 初始化流程
-async function initialize() {
-validateConfig();
-checkTokenExpiry();
-  
-  // 自动获取token
-  await initializeToken();
-  
-  // 启动token自动刷新调度器
-  if (config.AUTO_REFRESH_TOKEN !== false) {
-    startTokenRefreshScheduler();
-  }
-}
-
-// 执行初始化
-initialize();
-
 // 工具函数：消息ID、图片检测
 function generateMessageId() { return randomUUID(); }
 function hasImagesInMessage(message) {
@@ -649,7 +632,7 @@ app.listen(port, () => {
     console.log(`  🐛 调试模式: ${isDebugMode() ? '✅ 启用' : '❌ 禁用'}`);
     console.log(`  🔒 认证模式: ${isServerMode() ? '服务器端' : '客户端'}`);
     console.log(`  🔄 自动刷新: ${config.AUTO_REFRESH_TOKEN !== false ? '✅ 启用' : '❌ 禁用'}`);
-    console.log(`  🗑️  定时删除: ✅ 启用 (每1小时删除第2页聊天记录)`);
+    console.log(`  🗑️  定时删除: ${getQwenToken() ? '✅ 启用 (每1小时删除第2页聊天记录)' : '⚠️ 未启用 (需要 QWEN_TOKEN)'}`);
   console.log('\n🔌 API 端点:');
   console.log('  📋 GET  /v1/models - 获取模型列表');
   console.log('  💬 POST /v1/chat/completions - 聊天完成');
@@ -675,10 +658,18 @@ async function initialize() {
   }
   
   // 启动定时删除任务：每1小时删除一次第2页的聊天记录
-  startChatDeletionScheduler();
+  // 只在有 token 的情况下启动删除任务
+  if (getQwenToken()) {
+    startChatDeletionScheduler(60); // 每60分钟执行一次
+  } else {
+    logger.warn('未配置 QWEN_TOKEN，跳过启动定时删除任务');
+  }
   
   // 启动服务器
   startServer();
 }
+
+// 执行初始化
+initialize();
 
 
