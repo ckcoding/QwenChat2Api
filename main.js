@@ -75,8 +75,16 @@ async function initializeToken() {
     const result = await getTokenFromCookie();
     
     if (result.success) {
-      logger.info('Token获取成功，重新加载配置');
-      reloadConfig();
+      // 如果是环境变量模式，直接更新内存中的配置
+      if (result.envMode && result.newToken) {
+        config.QWEN_TOKEN = result.newToken;
+        logger.info('Token获取成功（环境变量模式，已更新内存配置）', { 
+          newTokenLength: result.newToken.length 
+        });
+      } else {
+        logger.info('Token获取成功，重新加载配置');
+        reloadConfig();
+      }
     } else {
       logger.info('从cookie获取token失败:', result.error);
       if (!currentToken) {
@@ -584,11 +592,21 @@ app.get('/health', (req, res) => {
 app.post('/refresh-token', async (req, res) => {
   try {
     logger.info('收到手动刷新token请求');
-    const result = await checkAndRefreshToken();
+    const result = await getTokenFromCookie();
     
-    if (result) {
-      // 重新加载配置以获取最新的token
-      reloadConfig();
+    if (result.success) {
+      // 如果是环境变量模式，直接更新内存中的配置
+      if (result.envMode && result.newToken) {
+        config.QWEN_TOKEN = result.newToken;
+        logger.info('Token刷新成功（环境变量模式，已更新内存配置）', { 
+          newTokenLength: result.newToken.length 
+        });
+      } else {
+        // 更新配置文件
+        reloadConfig();
+        logger.info('Token刷新成功，已更新配置文件');
+      }
+      
       const newTokenInfo = getTokenRefreshInfo();
       
       res.json({
@@ -605,6 +623,7 @@ app.post('/refresh-token', async (req, res) => {
       res.status(500).json({
         success: false,
         message: 'Token刷新失败',
+        error: result.error,
         timestamp: new Date().toISOString()
       });
     }
@@ -652,9 +671,9 @@ async function initialize() {
   // 自动获取token
   await initializeToken();
   
-  // 启动token自动刷新调度器
+  // 启动token自动刷新调度器（传入config对象以便环境变量模式下更新内存）
   if (config.AUTO_REFRESH_TOKEN !== false) {
-    startTokenRefreshScheduler();
+    startTokenRefreshScheduler(config);
   }
   
   // 启动定时删除任务：每1小时删除一次第2页的聊天记录
