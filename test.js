@@ -1,12 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
+const { getServerPort, getApiKey } = require('./lib/config');
 
-const CONFIG_PATH = path.join(__dirname, 'config.json');
-const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
-
-const BASE_URL = `http://localhost:${config.PORT || 8000}`;
-const AUTH_HEADER = config.SALT ? { Authorization: `Bearer ${config.SALT}` } : {};
+const BASE_URL = `http://localhost:${getServerPort()}`;
+const apiKey = getApiKey();
+const AUTH_HEADER = apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
 
 function log(title, payload) {
   const ts = new Date().toISOString();
@@ -109,7 +108,7 @@ async function testChatWithImage() {
   };
 
   const res = await axios.post(`${BASE_URL}/v1/chat/completions`, body, {
-    headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream', 'X-API-Key': config.SALT || '', ...AUTH_HEADER },
+    headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream', 'X-API-Key': apiKey || '', ...AUTH_HEADER },
     responseType: 'stream',
     timeout: 120000
   });
@@ -168,7 +167,7 @@ async function testChatWithRemoteImageUrl() {
   };
 
   const res = await axios.post(`${BASE_URL}/v1/chat/completions`, body, {
-    headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream', 'X-API-Key': config.SALT || '', ...AUTH_HEADER },
+    headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream', 'X-API-Key': apiKey || '', ...AUTH_HEADER },
     responseType: 'stream',
     timeout: 120000
   });
@@ -233,7 +232,7 @@ async function testChatNonStream() {
 
 async function runAll() {
   try {
-    log('开始测试', { baseURL: BASE_URL, useServerEnv: config.USE_SERVER_ENV, hasSalt: !!config.SALT });
+    log('开始测试', { baseURL: BASE_URL, hasApiKey: !!apiKey });
     await testHealth();
     await testModels();
     await testChatStream();

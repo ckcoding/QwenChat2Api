@@ -9,6 +9,7 @@ const { setSseHeaders, createKeepAlive } = require('./lib/sse');
 const { http } = require('./lib/http');
 const { logger } = require('./lib/logger');
 const { createQwenToOpenAIStreamTransformer, convertQwenResponseToOpenAI, collectOpenAICompletionFromSSE } = require('./lib/transformers');
+const { startChatDeletionScheduler } = require('./lib/chat-deletion');
 
 // 日志由 lib/logger.js 统一管理
 
@@ -19,7 +20,7 @@ const QWEN_CHAT_NEW_URL = 'https://chat.qwen.ai/api/v2/chats/new';
 function validateConfig() {
   const warnings = [];
   if (!getQwenToken()) warnings.push('QWEN_TOKEN 未设置，将尝试从Cookie获取');
-  if (!getCookie()) warnings.push('Cookie文件不存在，请运行 "node init.js" 设置');
+  if (!getCookie()) warnings.push('Cookie文件不存在或未设置 COOKIE 环境变量，请设置 Cookie 以便自动获取 Token');
   
   if (warnings.length) {
     warnings.forEach(w => console.log('⚠️ ', w));
@@ -61,7 +62,7 @@ async function initializeToken() {
     // 检查cookie文件是否存在
     const cookie = getCookie();
     if (!cookie) {
-      logger.info('Cookie文件不存在或为空，请先运行 "node init.js" 设置Cookie');
+      logger.info('Cookie文件不存在或未设置 COOKIE 环境变量，请设置 Cookie 以便自动获取 Token');
       if (!currentToken) {
         logger.error('没有可用的token和cookie，服务无法启动');
         process.exit(1);
@@ -370,6 +371,7 @@ async function transformOpenAIRequestToQwen(openAIRequest, token, opts = {}) {
 }
 
 // 流式转换器由 lib/transformers.js 统一提供
+// 删除聊天记录功能由 lib/chat-deletion.js 统一管理
 
 const app = express();
 app.use(helmet());
@@ -453,7 +455,7 @@ app.get('/v1/models', async (req, res) => {
         { id: 'qwen3-max-thinking', object: 'model' },
         { id: 'qwen3-max-image', object: 'model' },
         { id: 'qwen3-max-image_edit', object: 'model' },
-        { id: 'qwen-vl-max', object: 'model' }
+        { id: 'qwen3-vl-plus', object: 'model' }
       ];
       return res.json({ object: 'list', data: fallback });
     }
@@ -647,6 +649,7 @@ app.listen(port, () => {
     console.log(`  🐛 调试模式: ${isDebugMode() ? '✅ 启用' : '❌ 禁用'}`);
     console.log(`  🔒 认证模式: ${isServerMode() ? '服务器端' : '客户端'}`);
     console.log(`  🔄 自动刷新: ${config.AUTO_REFRESH_TOKEN !== false ? '✅ 启用' : '❌ 禁用'}`);
+    console.log(`  🗑️  定时删除: ✅ 启用 (每1小时删除第2页聊天记录)`);
   console.log('\n🔌 API 端点:');
   console.log('  📋 GET  /v1/models - 获取模型列表');
   console.log('  💬 POST /v1/chat/completions - 聊天完成');
@@ -670,6 +673,9 @@ async function initialize() {
   if (config.AUTO_REFRESH_TOKEN !== false) {
     startTokenRefreshScheduler();
   }
+  
+  // 启动定时删除任务：每1小时删除一次第2页的聊天记录
+  startChatDeletionScheduler();
   
   // 启动服务器
   startServer();

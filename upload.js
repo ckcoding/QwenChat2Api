@@ -7,8 +7,7 @@ const path = require('path');
 const { http } = require('./lib/http');
 const { logger } = require('./lib/logger');
 
-const CONFIG_PATH = path.join(__dirname, 'config.json');
-const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+const { getQwenToken } = require('./lib/config');
 
 const UPLOAD_CONFIG = {
   stsTokenUrl: 'https://chat.qwen.ai/api/v2/files/getstsToken',

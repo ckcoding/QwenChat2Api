@@ -1,10 +1,6 @@
 const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
 const { uploadFileToQwenOss } = require('./upload');
-
-const CONFIG_PATH = path.join(__dirname, 'config.json');
-const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+const { getQwenToken } = require('./lib/config');
 
 function sha256Encrypt(input) { return crypto.createHash('sha256').update(input).digest('hex'); }
 function generateUUID() { return crypto.randomUUID(); }
@@ -61,7 +57,7 @@ async function parserMessages(messages, thinking_config, chat_type) {
                 if (cache.has(signature)) {
                   delete item.image_url; item.type = 'image'; item.image = cache.get(signature); newContent.push(item);
                 } else {
-                  const uploadResult = await uploadFileToQwenOss(buffer, filename, config.QWEN_TOKEN);
+                  const uploadResult = await uploadFileToQwenOss(buffer, filename, getQwenToken());
                   if (uploadResult && uploadResult.status === 200) {
                     delete item.image_url; item.type = 'image'; item.image = uploadResult.file_url; cache.set(signature, uploadResult.file_url); newContent.push(item);
                   }

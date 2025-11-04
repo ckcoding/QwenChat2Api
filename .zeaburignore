@@ -1,0 +1,38 @@
+# Zeabur 忽略文件
+# 这些文件不会被部署到 Zeabur
+
+# 本地配置文件
+config.json
+cookie.txt
+*.backup.*
+
+# Python 相关
+*.py
+__pycache__/
+*.pyc
+extract_requirements.txt
+line_enhance_requirements.txt
+
+# 测试和开发文件
+test.js
+test_*.py
+quick_test.py
+debug_*.py
+*.xlsx
+*.csv
+
+# 图片和提取的数据
+extracted_images/
+images/
+detection_results.json
+chatid.json
+
+# 文档（可选，如果需要可以删除）
+*.md
+!README.md
+!DEPLOY.md
+
+# 备份文件
+*.backup.*
+*.bak
+

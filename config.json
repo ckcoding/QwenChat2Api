@@ -4,7 +4,7 @@
   "SERVER_MODE": true,
   "DEBUG_MODE": false,
   "SERVER_PORT": 8000,
-  "VISION_FALLBACK_MODEL": "qwen-vl-max",
+  "VISION_FALLBACK_MODEL": "qwen3-vl-plus",
   "AUTO_REFRESH_TOKEN": true,
   "TOKEN_REFRESH_INTERVAL_HOURS": 24
 }

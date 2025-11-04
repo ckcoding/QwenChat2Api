@@ -18,9 +18,8 @@
 ```
 QwenChat2Api/
 ├── main.js                 # 主服务入口
-├── init.js                 # 初始化脚本，用于设置 Cookie
 ├── config.json             # 配置文件
-├── cookie.txt              # 存储浏览器 Cookie
+├── cookie.txt              # 存储浏览器 Cookie（可选，可用环境变量）
 ├── package.json            # 项目依赖配置
 ├── test.js                 # 测试脚本
 ├── upload.js               # 文件上传模块
@@ -43,22 +42,30 @@ QwenChat2Api/
 npm install
 ```
 
-### 2. 初始化配置
+### 2. 配置 Cookie 和 Token
 
-运行初始化脚本设置 Cookie：
+**方法一：使用环境变量（推荐）**
 
+设置环境变量：
 ```bash
-node init.js
+export COOKIE="你的Cookie值"
+export QWEN_TOKEN="你的Token值（可选，会自动获取）"
 ```
 
-按照提示：
+**方法二：使用配置文件**
+
+1. 创建 `cookie.txt` 文件，将 Cookie 值粘贴进去
+2. 编辑 `config.json` 文件，设置 `QWEN_TOKEN`（可选，会自动从 Cookie 获取）
+
+**获取 Cookie 的方法：**
+
 1. 打开浏览器访问 https://chat.qwen.ai
 2. 登录你的账户
 3. 打开开发者工具 (F12)
 4. 切换到 Network 标签页
 5. 刷新页面或发送消息
-6. 复制任意请求的 Cookie 值
-7. 粘贴到终端
+6. 点击任意请求，在 Headers 中找到 Cookie 值
+7. 复制完整的 Cookie 值
 
 ### 3. 配置说明
 
@@ -71,7 +78,7 @@ node init.js
   "SERVER_MODE": true,                           // 服务器端模式
   "DEBUG_MODE": false,                           // 调试模式
   "SERVER_PORT": 8000,                           // 服务端口
-  "VISION_FALLBACK_MODEL": "qwen-vl-max",        // 视觉回退模型
+  "VISION_FALLBACK_MODEL": "qwen3-vl-plus",        // 视觉回退模型
   "AUTO_REFRESH_TOKEN": true,                    // 自动刷新 Token
   "TOKEN_REFRESH_INTERVAL_HOURS": 24             // Token 刷新间隔（小时）
 }
@@ -265,7 +272,7 @@ curl http://localhost:8000/health
 
 ### 常见问题
 
-1. **Token 过期**: 运行 `node init.js` 重新设置 Cookie
+1. **Token 过期**: 更新 `COOKIE` 环境变量或 `cookie.txt` 文件，服务会自动获取新的 Token
 2. **连接失败**: 检查网络连接和防火墙设置
 3. **图片上传失败**: 检查文件大小和格式
 4. **流式中断**: 检查客户端是否支持 SSE
@@ -277,6 +284,36 @@ curl http://localhost:8000/health
 3. 检查健康状态：`/health` 端点
 4. 手动刷新 Token：`POST /refresh-token`
 
+## ☁️ 云平台部署
+
+### Zeabur 部署
+
+项目已支持部署到 [Zeabur](https://zeabur.com) 平台。
+
+详细部署指南请查看 [DEPLOY.md](./DEPLOY.md)
+
+**快速步骤：**
+
+1. 将代码推送到 GitHub 仓库
+2. 在 Zeabur 中导入项目
+3. 设置环境变量：
+   - `COOKIE`: 你的通义千问 Cookie
+   - `QWEN_TOKEN`: （可选，会自动从 Cookie 获取）
+   - `API_KEY`: （可选）API 密钥
+4. 部署完成！
+
+**环境变量支持：**
+
+项目支持通过环境变量配置，适合云平台部署：
+- `COOKIE` - Cookie 值
+- `QWEN_TOKEN` - Token
+- `API_KEY` - API 密钥
+- `SERVER_MODE` - 服务器模式（默认：true）
+- `DEBUG_MODE` - 调试模式（默认：false）
+- `PORT` - 服务端口（Zeabur 自动设置）
+- `VISION_FALLBACK_MODEL` - 视觉回退模型
+- `AUTO_REFRESH_TOKEN` - 自动刷新 Token（默认：true）
+
 ## 📝 更新日志
 
 ### v3.11.0
@@ -284,6 +321,8 @@ curl http://localhost:8000/health
 - 优化图片处理流程
 - 增强错误处理和日志系统
 - 支持更多模型类型和功能
+- 支持环境变量配置，适配云平台部署
+- 新增 Zeabur 部署支持
 
 ## 🤝 贡献
 
