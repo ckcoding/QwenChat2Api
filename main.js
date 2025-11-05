@@ -245,7 +245,17 @@ async function transformOpenAIRequestToQwen(openAIRequest, token, cookie, opts =
     const imagesToUse = allImages.slice(-3);
     const files = [];
     if (imagesToUse.length > 0) {
-      try { const imageToUpload = imagesToUse[imagesToUse.length - 1]; const uploadedFile = await processImageUpload(imageToUpload, token, cookie); files.push(uploadedFile); } catch(e){ logger.error('图片上传失败，切换到文本生图模式', e); }
+      for (const imageUrl of imagesToUse) {
+        try {
+          const uploadedFile = await processImageUpload(imageUrl, token, cookie);
+          files.push(uploadedFile);
+        } catch (e) {
+          logger.error('图片上传失败，跳过该图片', e);
+        }
+      }
+      if (files.length === 0) {
+        logger.error('图片上传全部失败，切换到文本生图模式');
+      }
     }
     const messageId = generateMessageId();
     const timestamp = Math.floor(Date.now()/1000);
